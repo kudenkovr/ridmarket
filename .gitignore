@@ -3,9 +3,8 @@ _*
 *.json
 *.sql
 *.log
-*cache/
-*config.php
-stock/
+/config.php
+/admin/config.php
 image/
 import.php
 php.ini
