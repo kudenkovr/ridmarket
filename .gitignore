@@ -1,0 +1,12 @@
+.htaccess
+_*
+*.json
+*.sql
+*.log
+*cache/
+*config.php
+stock/
+image/
+import.php
+php.ini
+test.php

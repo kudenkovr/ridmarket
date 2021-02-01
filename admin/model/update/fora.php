@@ -74,7 +74,7 @@ class ModelUpdateFora extends Model {
 						'price' => $product['Price'],
 						'image' => (!empty($product['ImageName'])) ? $this->config->get('dir_fora_image') . $product['ImageName'] : '',
 						'store_id' => $this->config->get('store_id'),
-						'categories' => $this->model_update_category->getIDsByNamedPath($product['TVid'] . $this->config->get('category_separator') . $product['Category'])
+						'categories' => $this->model_update_category->getIDsByNamedPath(trim($product['TVid']) . $this->config->get('category_separator') . trim($product['Category']))
 					);
 			if ($this->inserted_upc->has($data['upc'])) {
 				$data['product_id'] = (int)$this->inserted_upc->get($data['upc']);

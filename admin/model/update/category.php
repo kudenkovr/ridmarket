@@ -4,8 +4,8 @@ class ModelUpdateCategory extends Model {
 	public function getCategories() {
 		$this->registry->set('categories', new Stack());
 		
-		$query = $this->db->query('SELECT cp.category_id, cd1.name,
-										GROUP_CONCAT(cd2.category_id SEPARATOR ",") AS path,
+		$query = $this->db->query('SELECT cp.category_id, cp.level, cp.path_id, cd1.name,
+										GROUP_CONCAT(cp.path_id SEPARATOR ",") AS path,
 										GROUP_CONCAT(cd2.name SEPARATOR "' . $this->config->get('category_separator') . '") AS named_path
 									FROM ' . DB_PREFIX . 'category_path cp
 									LEFT JOIN ' . DB_PREFIX . 'category_description cd1 ON (cp.category_id = cd1.category_id)
@@ -13,6 +13,17 @@ class ModelUpdateCategory extends Model {
 									LEFT JOIN ' . DB_PREFIX . 'category_to_store c2s ON (cp.category_id = c2s.category_id)
 									WHERE c2s.store_id = ' . (int)$this->config->get('store_id') . '
 									GROUP BY cp.category_id
+									ORDER BY cp.category_id ASC, cp.level ASC');
+		
+		$query = $this->db->query('SELECT cp.category_id, cp.level, cd1.name,
+										GROUP_CONCAT(cp.path_id SEPARATOR ",") AS path,
+										GROUP_CONCAT(cd2.name SEPARATOR " >> ") AS named_path
+									FROM ' . DB_PREFIX . 'category_to_store c2s
+									LEFT JOIN ' . DB_PREFIX . 'category_path cp ON (cp.category_id = c2s.category_id)
+									LEFT JOIN ' . DB_PREFIX . 'category_description cd1 ON (cp.category_id = cd1.category_id)
+									LEFT JOIN ' . DB_PREFIX . 'category_description cd2 ON (cp.path_id = cd2.category_id)
+									WHERE c2s.store_id = ' . (int)$this->config->get('store_id') . '
+									GROUP BY c2s.category_id
 									ORDER BY cp.level ASC');
 		
 		// $query = $this->db->query('SELECT IF(c.parent_id = 0, cd.name, CONCAT((
@@ -27,8 +38,9 @@ class ModelUpdateCategory extends Model {
 		// 								WHERE c.category_id = cd.category_id
 		// 								ORDER BY c.parent_id');
 		// $categories = array_column($query->rows, 'category_ids', 'name');
+		// print_r($query->rows);exit;
+		// foreach ($query->rows as $row) { echo $row['category_id'].'.	'.$row['name'].': '.$row['named_path']." ($row[path]);\r\n"; } exit;
 		$this->categories->setArray($query->rows);
-		
 		return $this->categories;
 	}
 	
@@ -53,7 +65,9 @@ class ModelUpdateCategory extends Model {
 	
 	public function getIDsByNamedPath($named_path, $insert = true, $status = 1) {
 		foreach ($this->categories->toArray() as $category) {
+			// echo ('* '.$named_path.' == '.$category['named_path'].': '.($category['named_path'] == $named_path?'true':'false').";\r\n");
 			if ($category['named_path'] == $named_path) {
+				// print_r($category);
 				return $category['path'];
 			}
 		}
@@ -62,13 +76,15 @@ class ModelUpdateCategory extends Model {
 			$named_path_arr = explode($this->config->get('category_separator'), $named_path);
 			$name = array_pop($named_path_arr);
 			$parent_name = implode($this->config->get('category_separator'), $named_path_arr);
-			$parent_id = empty($parent_name) ? 0 : $this->getIDsByNamedPath($parent_name);
+			$parent_id = empty($parent_name) ? 0 : $this->getIDsByNamedPath($parent_name, true, 1);
 			$category = $this->add(array(
 				'name' => $name,
 				'parent_id' => $parent_id,
 				'status' => (bool)$status,
 				'store_id' => (int)$this->config->get('store_id')
 			));
+			echo (count($this->categories->toArray()))."	| $named_path: $name".PHP_EOL;
+			// print_r($this->categories->toArray());exit;
 			return (string)$category['path'];
 		}
 	}
@@ -111,7 +127,7 @@ class ModelUpdateCategory extends Model {
 		// MySQL Hierarchical Data Closure Table Pattern
 		$level = 0;
 		$path = '';
-		$query = $this->db->query('SELECT path_id FROM ' . DB_PREFIX . 'category_path
+		$query = $this->db->query('SELECT path_id, level FROM ' . DB_PREFIX . 'category_path
 									WHERE category_id = "' . (int)$data['parent_id'] . '"
 									ORDER BY level ASC');
 		foreach ($query->rows as $result) {
@@ -137,18 +153,20 @@ class ModelUpdateCategory extends Model {
 								store_id = "' . (int)$store_id . '"');
 		
 		// Named path
-		$category = $this->db->query('SELECT
+		$result = $this->db->query('SELECT
 											cp.category_id,
-											cd.name,
+											cd1.name, cp.level,
 											GROUP_CONCAT(cp.path_id SEPARATOR ",") AS path,
-											GROUP_CONCAT(cd.name SEPARATOR "' . $this->config->get('category_separator') . '") AS named_path
+											GROUP_CONCAT(cd2.name SEPARATOR "' . $this->config->get('category_separator') . '") AS named_path
 										FROM ' . DB_PREFIX . 'category_path cp
-										LEFT JOIN oc_category_description cd ON (cd.category_id = cp.path_id)
+										LEFT JOIN oc_category_description cd1 ON (cd1.category_id = cp.category_id)
+										LEFT JOIN oc_category_description cd2 ON (cd2.category_id = cp.path_id)
 										WHERE cp.category_id = "' . (int)$category_id . '"
 										GROUP BY cp.category_id
-										ORDER BY cp.level ASC');
-		if (isset($this->categories))
-			$this->categories->add($category->row); // WAAAAT?!
-		return $category->row;
+										ORDER BY cp.category_id ASC, cp.level ASC');
+		// if (!$this->registry->has('categories')) $this->registry->set('categories', new Stack);
+		$this->categories->add($result->row);
+		// print_r($this->categories);exit;
+		return $result->row;
 	}
 }
