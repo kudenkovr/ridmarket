@@ -46,14 +46,16 @@ class ControllerUpdateFora extends Controller {
 		$this->config->load('fora4s');
 		
 		$file = $this->config->get('dir_fora_import') . $this->config->get('file_fora_import');
+		if (!file_exists($file)) exit;
 		
 		$output = $this->model_update_fora->import($file);
-		if (isset($output['success'])) {
+		if (isset($output['success']) && $output['success']) {
 			// unlink($file);
 		}
 		
-		ksort($output);
-		$this->response->setOutput(json_encode($output));
+		$this->response->setOutput($this->load->view('update/autoimport', $output));
+		// ksort($output);
+		// $this->response->setOutput(json_encode($output));
 	}
 	
 	

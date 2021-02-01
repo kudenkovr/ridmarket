@@ -79,5 +79,12 @@ class ModelUpdateProduct extends Model {
 								status = "' . (int)$data['status'] . '",
 								image = "' . $this->db->escape($data['image']) . '"
 							WHERE product_id = "' . (int)$data['product_id'] . '"');
+		// Update product categories
+		$this->db->query('DELETE FROM ' . DB_PREFIX . 'product_to_category WHERE product_id = "' . (int)$data['product_id'] . '"');
+		foreach (explode(',', $data['categories']) as $category_id) {
+			$this->db->query('INSERT INTO ' . DB_PREFIX . 'product_to_category
+								SET product_id = "' . (int)$data['product_id'] . '",
+									category_id = "' . (int)$category_id . '"');
+		}
 	}
 }
