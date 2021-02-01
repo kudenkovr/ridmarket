@@ -3,7 +3,7 @@ _*
 *.json
 *.sql
 *.log
-*config.php
+/config.php
 image/
 import.php
 php.ini
