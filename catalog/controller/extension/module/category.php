@@ -29,20 +29,24 @@ class ControllerExtensionModuleCategory extends Controller {
 
 		$categories = $this->model_catalog_category->getCategories(0);
 
-		foreach ($categories as $category) {
+		foreach ($categories as $i => $category) {
 			$children_data = array();
-
-			if ($category['category_id'] == $data['category_id']) {
+			
 				$children = $this->model_catalog_category->getCategories($category['category_id']);
+			if ($category['category_id'] == $data['category_id']) {
 
 				foreach($children as $child) {
 					$filter_data = array('filter_category_id' => $child['category_id'], 'filter_sub_category' => true);
-
-					$children_data[] = array(
-						'category_id' => $child['category_id'],
-						'name' => $child['name'] . ($this->config->get('config_product_count') ? ' (' . $this->model_catalog_product->getTotalProducts($filter_data) . ')' : ''),
-						'href' => $this->url->link('product/category', 'path=' . $category['category_id'] . '_' . $child['category_id'])
-					);
+					
+					$total = $this->model_catalog_product->getTotalProducts($filter_data);
+					
+					if ($total > 0) {
+						$children_data[] = array(
+							'category_id' => $child['category_id'],
+							'name' => $child['name'] . ($this->config->get('config_product_count') ? ' (' . $total . ')' : ''),
+							'href' => $this->url->link('product/category', 'path=' . $category['category_id'] . '_' . $child['category_id'])
+						);
+					}
 				}
 			}
 
@@ -50,10 +54,12 @@ class ControllerExtensionModuleCategory extends Controller {
 				'filter_category_id'  => $category['category_id'],
 				'filter_sub_category' => true
 			);
+			$total = $this->model_catalog_product->getTotalProducts($filter_data);
+			if (empty($children) && $total==0) continue;
 
 			$data['categories'][] = array(
 				'category_id' => $category['category_id'],
-				'name'        => $category['name'] . ($this->config->get('config_product_count') ? ' (' . $this->model_catalog_product->getTotalProducts($filter_data) . ')' : ''),
+				'name'        => $category['name'] . ($this->config->get('config_product_count') ? ' (' . $total . ')' : ''),
 				'children'    => $children_data,
 				'href'        => $this->url->link('product/category', 'path=' . $category['category_id'])
 			);

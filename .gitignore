@@ -5,6 +5,7 @@ _*
 *.log
 /config.php
 /admin/config.php
+/system/storage/cache/
 image/
 import.php
 php.ini
