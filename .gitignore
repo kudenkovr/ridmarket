@@ -4,6 +4,7 @@ _*
 *.sql
 *.log
 /config.php
+/admin/config.php
 image/
 import.php
 php.ini
